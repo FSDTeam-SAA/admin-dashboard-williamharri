@@ -204,7 +204,9 @@ export function JobTable({ onEdit, onViewDetails }: JobTableProps) {
                   ))
                 : jobs.map((job) => {
                     const jobStatusValue = job.jobStatus ?? "";
-                    const hasScaffold = !!(job.latestScaffold || job.scaffoldApplication);
+                    const hasScaffold = !!(
+                      job.latestScaffold || job.scaffoldApplication
+                    );
                     return (
                       <TableRow key={job.id}>
                         <TableCell className="font-medium">
@@ -262,8 +264,16 @@ export function JobTable({ onEdit, onViewDetails }: JobTableProps) {
                               if (hasScaffold) setSelectedJobForScaffold(job);
                             }}
                             disabled={!hasScaffold}
+                            // variant={hasScaffold ? "default" : "secondary"}
+                            className={
+                              !hasScaffold
+                                ? "cursor-not-allowed opacity-60"
+                                : ""
+                            }
                           >
-                            View Scaffold
+                            {hasScaffold
+                              ? "View Scaffold"
+                              : "Awaiting Scaffold"}
                           </Button>
                         </TableCell>
 

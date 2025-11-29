@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo } from "react"
+import { useMemo, useCallback } from "react"
 import { useQuery } from "@tanstack/react-query"
 import {
   BarChart,
@@ -15,92 +15,92 @@ import {
   ResponsiveContainer,
 } from "recharts"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Users, UserCheck, Briefcase } from "lucide-react"
+import { Users, UserCheck, Briefcase, FileCheck } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
-import { userAPI, jobsAPI } from "@/lib/api"
+import { useSession } from "next-auth/react"
 
-const dayLabels = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+// --- Helper Function for Formatting Dates ---
+const dateFormatter = (dateString: string) => {
+  if (!dateString) return ''
+  const date = new Date(dateString)
+  // Format as "Nov 29" or "Oct 31"
+  return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' }).format(date)
+}
 
 export default function DashboardPage() {
-  const usersQuery = useQuery({
-    queryKey: ["dashboard", "users"],
+
+  const session = useSession()
+  const token = session.data?.accessToken
+  const dashboardQuery = useQuery({
+    queryKey: ["dashboard", "overview"],
     queryFn: async () => {
-      const response = await userAPI.getAllUsers(1, 100)
-      return response.data.data
+      // ... (API call logic remains the same)
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/jobs/dashboard/overview`
+        , {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      )
+      const result = await response.json()
+      return result.data
     },
   })
 
-  const jobsQuery = useQuery({
-    queryKey: ["dashboard", "jobs"],
-    queryFn: async () => {
-      const response = await jobsAPI.getAllJobs(1, 50)
-      return response.data.data
-    },
-  })
+  const { data, isLoading } = dashboardQuery
 
-  const totalUsers = usersQuery.data?.pagination?.totalDocs ?? 0
-  const staffCount =
-    usersQuery.data?.results?.filter((user: any) => user.role === "staff").length ?? 0
-  const managerCount =
-    usersQuery.data?.results?.filter((user: any) => user.role === "manager").length ?? 0
-  const totalJobs = jobsQuery.data?.pagination?.totalDocs ?? 0
+  // --- Data Transformation for Charts ---
 
   const jobPostedData = useMemo(() => {
-    const jobs = jobsQuery.data?.results ?? []
-    const counts: Record<string, number> = {}
-
-    jobs.forEach((job: any) => {
-      if (!job.createdAt) return
-      const dayName = dayLabels[new Date(job.createdAt).getDay()]
-      counts[dayName] = (counts[dayName] || 0) + 1
-    })
-
-    return dayLabels.map((day) => ({
-      name: day,
-      value: counts[day] ?? 0,
+    if (!data?.jobGraph) return []
+    
+    const { labels, counts, dates } = data.jobGraph;
+    
+    // MODIFIED: Use the entire 30 days of data (no slicing)
+    return labels.map((label: string, index: number) => ({
+      name: dates[index], 
+      value: counts[index] || 0,
     }))
-  }, [jobsQuery.data])
+  }, [data])
 
-  const userGrowthData = useMemo(() => {
-    const users = usersQuery.data?.results ?? []
-    const jobs = jobsQuery.data?.results ?? []
+  const scaffoldActivityData = useMemo(() => {
+    if (!data?.scaffoldGraph) return []
 
-    const buildDateKey = (dateString: string) => {
-      const date = new Date(dateString)
-      if (Number.isNaN(date.getTime())) return null
-      return date.toISOString().split("T")[0]
-    }
-
-    const aggregateByDate = (items: any[]) => {
-      return items.reduce<Record<string, number>>((acc, item) => {
-        if (!item.createdAt) return acc
-        const key = buildDateKey(item.createdAt)
-        if (!key) return acc
-        acc[key] = (acc[key] || 0) + 1
-        return acc
-      }, {})
-    }
-
-    const usersByDate = aggregateByDate(users)
-    const jobsByDate = aggregateByDate(jobs)
-
-    const lastSevenDays = Array.from({ length: 7 }).map((_, index) => {
-      const date = new Date()
-      date.setDate(date.getDate() - (6 - index))
-      const key = date.toISOString().split("T")[0]
-      const label = date.toLocaleDateString("en-US", { month: "short", day: "numeric" })
-      return { key, label }
-    })
-
-    return lastSevenDays.map((day) => ({
-      name: day.label,
-      value1: usersByDate[day.key] ?? 0,
-      value2: jobsByDate[day.key] ?? 0,
-      value3: 0,
+    // Zip labels and the 3 series arrays together
+    return data.scaffoldGraph.labels.map((label: string, index: number) => ({
+      name: label, // Use the full date string as the primary key
+      submitted: data.scaffoldGraph.series.submitted[index] || 0,
+      redo: data.scaffoldGraph.series.redo[index] || 0,
+      accepted: data.scaffoldGraph.series.accepted[index] || 0,
     }))
-  }, [usersQuery.data, jobsQuery.data])
+  }, [data])
+  
+  // Custom Tooltip formatter for better display
+  const CustomTooltip = useCallback(({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="p-2 border border-gray-200 bg-white shadow-lg rounded-lg text-sm">
+          <p className="font-semibold text-gray-700 mb-1">{dateFormatter(label)}</p>
+          {payload.map((p: any, index: number) => (
+            <p key={index} style={{ color: p.color }}>
+              {`${p.name}: `}
+              <span className="font-bold">{p.value}</span>
+            </p>
+          ))}
+        </div>
+      );
+    }
+    return null;
+  }, []);
 
-  const isLoading = usersQuery.isLoading || jobsQuery.isLoading
+  // --- Card Value Extraction ---
+  
+  const cards = data?.cards || {}
+  const totalStaff = cards.totalStaff || 0
+  const totalManagers = cards.totalManagers || 0
+  const totalJobs = cards.totalJobs || 0
+  const totalScaffolded = cards.totalScaffoldedJobs || 0
 
   return (
     <div className="space-y-8">
@@ -108,9 +108,10 @@ export default function DashboardPage() {
         <h1 className="text-3xl font-bold text-gray-900">Overview</h1>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      {/* --- Stats Cards (Unchanged) --- */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {isLoading ? (
-          Array.from({ length: 3 }).map((_, idx) => (
+          Array.from({ length: 4 }).map((_, idx) => (
             <Card key={idx}>
               <CardContent className="pt-6">
                 <Skeleton className="h-20 w-full" />
@@ -123,8 +124,8 @@ export default function DashboardPage() {
               <CardContent className="pt-6">
                 <div className="flex items-start justify-between">
                   <div>
-                    <p className="text-gray-600 text-sm font-medium mb-2">Total Users</p>
-                    <p className="text-4xl font-bold text-gray-900">{totalUsers}</p>
+                    <p className="text-gray-600 text-sm font-medium mb-2">Total Staff</p>
+                    <p className="text-4xl font-bold text-gray-900">{totalStaff}</p>
                   </div>
                   <div className="p-3 bg-blue-100 rounded-lg">
                     <Users className="w-6 h-6 text-blue-600" />
@@ -138,7 +139,7 @@ export default function DashboardPage() {
                 <div className="flex items-start justify-between">
                   <div>
                     <p className="text-gray-600 text-sm font-medium mb-2">Managers</p>
-                    <p className="text-4xl font-bold text-gray-900">{managerCount}</p>
+                    <p className="text-4xl font-bold text-gray-900">{totalManagers}</p>
                   </div>
                   <div className="p-3 bg-green-100 rounded-lg">
                     <UserCheck className="w-6 h-6 text-green-600" />
@@ -160,42 +161,87 @@ export default function DashboardPage() {
                 </div>
               </CardContent>
             </Card>
+
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <p className="text-gray-600 text-sm font-medium mb-2">Scaffold Jobs</p>
+                    <p className="text-4xl font-bold text-gray-900">{totalScaffolded}</p>
+                  </div>
+                  <div className="p-3 bg-purple-100 rounded-lg">
+                    <FileCheck className="w-6 h-6 text-purple-600" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </>
         )}
       </div>
-
+      
+      ---
+      
+      {/* --- Charts --- */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        
+        {/* Job Posted Chart */}
         <Card>
           <CardHeader>
-            <CardTitle>Job Posted</CardTitle>
+            {/* UPDATED: Title now reflects the 30 days of data used */}
+            <CardTitle>Job Posted (Last 30 Days)</CardTitle> 
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={jobPostedData}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="value" fill="#1f2937" />
+                {/* Date formatter applied */}
+                <XAxis dataKey="name" tickFormatter={dateFormatter} /> 
+                <YAxis allowDecimals={false} />
+                <Tooltip content={CustomTooltip} />
+                <Bar dataKey="value" fill="#1f2937" name="Jobs" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
 
+        {/* Scaffold Activity Chart */}
         <Card>
           <CardHeader>
-            <CardTitle>User & Job Growth</CardTitle>
+            <CardTitle>Scaffold Activity (Last 30 Days)</CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={userGrowthData}>
+              <LineChart data={scaffoldActivityData}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip />
+                {/* Date formatter applied */}
+                <XAxis dataKey="name" tickFormatter={dateFormatter} />
+                <YAxis allowDecimals={false} />
+                <Tooltip content={CustomTooltip} />
                 <Legend />
-                <Line type="monotone" dataKey="value1" stroke="#ef4444" name="New Users" />
-                <Line type="monotone" dataKey="value2" stroke="#3b82f6" name="New Jobs" />
+                <Line 
+                  type="monotone" 
+                  dataKey="submitted" 
+                  stroke="#3b82f6" 
+                  strokeWidth={2}
+                  name="Submitted" 
+                  dot={{ r: 4 }}
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey="redo" 
+                  stroke="#ef4444" 
+                  strokeWidth={2}
+                  name="Redo" 
+                  dot={{ r: 4 }}
+                />
+                 <Line 
+                  type="monotone" 
+                  dataKey="accepted" 
+                  stroke="#22c55e" 
+                  strokeWidth={2}
+                  name="Accepted" 
+                  dot={{ r: 4 }}
+                />
               </LineChart>
             </ResponsiveContainer>
           </CardContent>
