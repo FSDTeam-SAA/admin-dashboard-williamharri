@@ -34,7 +34,7 @@ export function ChangePasswordModal({ open, onOpenChange }: ChangePasswordModalP
       onOpenChange(false)
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.message || "Failed to change password")
+      toast.error(error?.response?.data?.message || "Failed to change password")
     },
   })
 
@@ -78,7 +78,7 @@ export function ChangePasswordModal({ open, onOpenChange }: ChangePasswordModalP
               <Input
                 type={showOld ? "text" : "password"}
                 name="oldPassword"
-                placeholder="••••••••"
+                placeholder="********"
                 value={formData.oldPassword}
                 onChange={handleChange}
                 required
@@ -100,7 +100,7 @@ export function ChangePasswordModal({ open, onOpenChange }: ChangePasswordModalP
               <Input
                 type={showNew ? "text" : "password"}
                 name="newPassword"
-                placeholder="••••••••"
+                placeholder="********"
                 value={formData.newPassword}
                 onChange={handleChange}
                 required
@@ -122,7 +122,7 @@ export function ChangePasswordModal({ open, onOpenChange }: ChangePasswordModalP
               <Input
                 type={showConfirm ? "text" : "password"}
                 name="confirmPassword"
-                placeholder="••••••••"
+                placeholder="********"
                 value={formData.confirmPassword}
                 onChange={handleChange}
                 required
@@ -142,7 +142,11 @@ export function ChangePasswordModal({ open, onOpenChange }: ChangePasswordModalP
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button type="submit" disabled={changePasswordMutation.isPending} className="bg-blue-600 hover:bg-blue-700">
+            <Button
+              type="submit"
+              disabled={changePasswordMutation.isPending}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
               {changePasswordMutation.isPending ? "Changing..." : "Change"}
             </Button>
           </div>

@@ -1,10 +1,11 @@
-// app/login/page.tsx
+// app/(auth)/login/page.tsx
 "use client"
 
 import type React from "react"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { signIn } from "next-auth/react"
+import { useMutation } from "@tanstack/react-query"
 import Link from "next/link"
 import { Eye, EyeOff } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -13,11 +14,36 @@ import { toast } from "sonner"
 
 export default function LoginPage() {
   const router = useRouter()
-  const [isLoading, setIsLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [formData, setFormData] = useState({
     email: "",
     password: "",
+  })
+
+  const loginMutation = useMutation({
+    mutationFn: async (payload: { email: string; password: string }) => {
+      const result = await signIn("credentials", {
+        ...payload,
+        redirect: false,
+      })
+
+      if (!result) {
+        throw new Error("Unable to login. Please try again.")
+      }
+
+      if (result.error) {
+        throw new Error(result.error)
+      }
+
+      return result
+    },
+    onSuccess: () => {
+      toast.success("Login successful")
+      router.push("/dashboard")
+    },
+    onError: (error: any) => {
+      toast.error(error?.message || "Login failed")
+    },
   })
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -27,28 +53,9 @@ export default function LoginPage() {
     })
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    setIsLoading(true)
-
-    try {
-      const result = await signIn("credentials", {
-        email: formData.email,
-        password: formData.password,
-        redirect: false,
-      })
-
-      if (result?.error) {
-        toast.error(result.error)
-      } else if (result?.ok) {
-        toast.success("Login successful")
-        router.push("/dashboard")
-      }
-    } catch (error: any) {
-      toast.error(error.message || "Login failed")
-    } finally {
-      setIsLoading(false)
-    }
+    loginMutation.mutate(formData)
   }
 
   return (
@@ -84,7 +91,7 @@ export default function LoginPage() {
             <Input
               type={showPassword ? "text" : "password"}
               name="password"
-              placeholder="••••••••"
+              placeholder="********"
               value={formData.password}
               onChange={handleChange}
               required
@@ -122,10 +129,10 @@ export default function LoginPage() {
 
         <Button
           type="submit"
-          disabled={isLoading}
+          disabled={loginMutation.isPending}
           className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg"
         >
-          {isLoading ? "Logging in..." : "Login"}
+          {loginMutation.isPending ? "Logging in..." : "Login"}
         </Button>
       </form>
     </div>

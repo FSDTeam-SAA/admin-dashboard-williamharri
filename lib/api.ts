@@ -4,15 +4,16 @@ import { axiosInstance } from "./axios-instance"
 export const authAPI = {
   login: (data: { email: string; password: string }) => axiosInstance.post("/auth/login", data),
 
-  forgetPassword: (email: string) => axiosInstance.post("/auth/forget-password", { email }),
+  requestPasswordReset: (email: string) => axiosInstance.post("/auth/forgot-password", { email }),
 
-  verifyOTP: (data: { email: string; otp: string }) => axiosInstance.post("/auth/verify-otp", data),
+  verifyResetOtp: (data: { email: string; otp: string }) =>
+    axiosInstance.post("/auth/verify-reset-otp", data),
 
-  resetPassword: (data: { email: string; otp: string; newPassword: string }) =>
+  resetPassword: (data: { email: string; otp: string; password: string }) =>
     axiosInstance.post("/auth/reset-password", data),
 
   changePassword: (data: { oldPassword: string; newPassword: string }) =>
-    axiosInstance.post("/user/change-password", data),
+    axiosInstance.post("/auth/change-password", data),
 }
 
 // USER ENDPOINTS
@@ -28,7 +29,7 @@ export const userAPI = {
 
 // STAFF ENDPOINTS
 export const staffAPI = {
-  getAllStaff: () => axiosInstance.get("users/staff"),
+  getAllStaff: () => axiosInstance.get("/users/staff"),
 }
 
 // JOBS ENDPOINTS

@@ -2,6 +2,7 @@
 
 import { useSession } from "next-auth/react"
 import { useState } from "react"
+import { useMutation } from "@tanstack/react-query"
 import { Eye, EyeOff } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
@@ -10,7 +11,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogFooter,
-  DialogTitle
+  DialogTitle,
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { toast } from "sonner"
@@ -20,20 +21,30 @@ export function Header() {
   const { data: session } = useSession()
 
   const [open, setOpen] = useState(false)
-
-  // password fields
   const [oldPassword, setOldPassword] = useState("")
   const [newPassword, setNewPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
 
-  // visibility toggles
   const [showOld, setShowOld] = useState(false)
   const [showNew, setShowNew] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
 
-  const [loading, setLoading] = useState(false)
+  const changePasswordMutation = useMutation({
+    mutationFn: (payload: { oldPassword: string; newPassword: string }) =>
+      authAPI.changePassword(payload),
+    onSuccess: () => {
+      toast.success("Password changed successfully.")
+      setOldPassword("")
+      setNewPassword("")
+      setConfirmPassword("")
+      setOpen(false)
+    },
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.message || "Failed to change password")
+    },
+  })
 
-  const handleChangePassword = async () => {
+  const handleChangePassword = () => {
     if (!oldPassword || !newPassword || !confirmPassword) {
       toast.error("Please fill all fields.")
       return
@@ -44,26 +55,10 @@ export function Header() {
       return
     }
 
-    setLoading(true)
-
-    try {
-      await authAPI.changePassword({
-        oldPassword,
-        newPassword,
-      })
-
-      toast.success("Password changed successfully.")
-
-      // reset
-      setOldPassword("")
-      setNewPassword("")
-      setConfirmPassword("")
-      setOpen(false)
-    } catch (err: any) {
-      toast.error(err?.response?.data?.message || "Failed to change password")
-    } finally {
-      setLoading(false)
-    }
+    changePasswordMutation.mutate({
+      oldPassword,
+      newPassword,
+    })
   }
 
   return (
@@ -72,7 +67,6 @@ export function Header() {
         <div className="flex-1" />
 
         <div className="flex items-center gap-6">
-
           <div
             className="flex items-center gap-3 ml-4 pl-4 border-l border-gray-200 cursor-pointer"
             onClick={() => setOpen(true)}
@@ -89,21 +83,17 @@ export function Header() {
         </div>
       </header>
 
-      {/* CHANGE PASSWORD MODAL */}
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle>Change Password</DialogTitle>
           </DialogHeader>
 
-          {/* FORM */}
           <div className="space-y-4 py-2">
-
-            {/* Old password */}
             <div className="relative">
               <Input
                 type={showOld ? "text" : "password"}
-                placeholder="Old Password"
+                placeholder="Current Password"
                 value={oldPassword}
                 onChange={(e) => setOldPassword(e.target.value)}
               />
@@ -116,7 +106,6 @@ export function Header() {
               </button>
             </div>
 
-            {/* New password */}
             <div className="relative">
               <Input
                 type={showNew ? "text" : "password"}
@@ -133,7 +122,6 @@ export function Header() {
               </button>
             </div>
 
-            {/* Confirm new password */}
             <div className="relative">
               <Input
                 type={showConfirm ? "text" : "password"}
@@ -156,8 +144,8 @@ export function Header() {
               Cancel
             </Button>
 
-            <Button onClick={handleChangePassword} disabled={loading}>
-              {loading ? "Saving..." : "Change Password"}
+            <Button onClick={handleChangePassword} disabled={changePasswordMutation.isPending}>
+              {changePasswordMutation.isPending ? "Saving..." : "Change Password"}
             </Button>
           </DialogFooter>
         </DialogContent>

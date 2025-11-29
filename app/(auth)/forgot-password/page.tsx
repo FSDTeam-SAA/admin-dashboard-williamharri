@@ -3,6 +3,7 @@
 import type React from "react"
 
 import { useState } from "react"
+import { useMutation } from "@tanstack/react-query"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -12,22 +13,22 @@ import { authAPI } from "@/lib/api"
 
 export default function ForgotPasswordPage() {
   const router = useRouter()
-  const [isLoading, setIsLoading] = useState(false)
   const [email, setEmail] = useState("")
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsLoading(true)
-
-    try {
-      await authAPI.forgetPassword(email)
+  const requestOtpMutation = useMutation({
+    mutationFn: (payload: { email: string }) => authAPI.requestPasswordReset(payload.email),
+    onSuccess: () => {
       toast.success("OTP sent to your email")
-      router.push(`/auth/verify-otp?email=${email}`)
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || "Failed to send OTP")
-    } finally {
-      setIsLoading(false)
-    }
+      router.push(`/auth/verify-otp?email=${encodeURIComponent(email)}`)
+    },
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.message || "Failed to send OTP")
+    },
+  })
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    requestOtpMutation.mutate({ email })
   }
 
   return (
@@ -52,10 +53,10 @@ export default function ForgotPasswordPage() {
 
         <Button
           type="submit"
-          disabled={isLoading}
+          disabled={requestOtpMutation.isPending}
           className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg"
         >
-          {isLoading ? "Sending OTP..." : "Send OTP"}
+          {requestOtpMutation.isPending ? "Sending OTP..." : "Send OTP"}
         </Button>
       </form>
 

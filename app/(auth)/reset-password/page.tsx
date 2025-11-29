@@ -3,6 +3,7 @@
 import type React from "react"
 
 import { useState } from "react"
+import { useMutation } from "@tanstack/react-query"
 import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { Eye, EyeOff } from "lucide-react"
@@ -16,12 +17,23 @@ export default function ResetPasswordPage() {
   const searchParams = useSearchParams()
   const email = searchParams.get("email") || ""
   const otp = searchParams.get("otp") || ""
-  const [isLoading, setIsLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
   const [formData, setFormData] = useState({
     newPassword: "",
     confirmPassword: "",
+  })
+
+  const resetPasswordMutation = useMutation({
+    mutationFn: (payload: { email: string; otp: string; password: string }) =>
+      authAPI.resetPassword(payload),
+    onSuccess: () => {
+      toast.success("Password reset successfully")
+      router.push("/auth/login")
+    },
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.message || "Password reset failed")
+    },
   })
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -31,7 +43,7 @@ export default function ResetPasswordPage() {
     })
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
 
     if (formData.newPassword !== formData.confirmPassword) {
@@ -39,21 +51,11 @@ export default function ResetPasswordPage() {
       return
     }
 
-    setIsLoading(true)
-
-    try {
-      await authAPI.resetPassword({
-        email,
-        otp,
-        newPassword: formData.newPassword,
-      })
-      toast.success("Password reset successfully")
-      router.push("/auth/login")
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || "Password reset failed")
-    } finally {
-      setIsLoading(false)
-    }
+    resetPasswordMutation.mutate({
+      email,
+      otp,
+      password: formData.newPassword,
+    })
   }
 
   return (
@@ -68,7 +70,7 @@ export default function ResetPasswordPage() {
             <Input
               type={showPassword ? "text" : "password"}
               name="newPassword"
-              placeholder="••••••••"
+              placeholder="********"
               value={formData.newPassword}
               onChange={handleChange}
               required
@@ -90,7 +92,7 @@ export default function ResetPasswordPage() {
             <Input
               type={showConfirm ? "text" : "password"}
               name="confirmPassword"
-              placeholder="••••••••"
+              placeholder="********"
               value={formData.confirmPassword}
               onChange={handleChange}
               required
@@ -108,10 +110,10 @@ export default function ResetPasswordPage() {
 
         <Button
           type="submit"
-          disabled={isLoading}
+          disabled={resetPasswordMutation.isPending}
           className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg"
         >
-          {isLoading ? "Resetting..." : "Continue"}
+          {resetPasswordMutation.isPending ? "Resetting..." : "Continue"}
         </Button>
       </form>
 

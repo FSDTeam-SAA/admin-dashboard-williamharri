@@ -3,6 +3,7 @@
 import type React from "react"
 
 import { useState } from "react"
+import { useMutation } from "@tanstack/react-query"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -13,22 +14,25 @@ export default function VerifyOTPPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const email = searchParams.get("email") || ""
-  const [isLoading, setIsLoading] = useState(false)
   const [otp, setOtp] = useState("")
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsLoading(true)
-
-    try {
-      await authAPI.verifyOTP({ email, otp })
+  const verifyOtpMutation = useMutation({
+    mutationFn: (payload: { email: string; otp: string }) =>
+      authAPI.verifyResetOtp(payload),
+    onSuccess: (_data, variables) => {
       toast.success("OTP verified successfully")
-      router.push(`/auth/reset-password?email=${email}&otp=${otp}`)
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || "Invalid OTP")
-    } finally {
-      setIsLoading(false)
-    }
+      router.push(
+        `/auth/reset-password?email=${encodeURIComponent(variables.email)}&otp=${variables.otp}`,
+      )
+    },
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.message || "Invalid OTP")
+    },
+  })
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    verifyOtpMutation.mutate({ email, otp })
   }
 
   return (
@@ -55,10 +59,10 @@ export default function VerifyOTPPage() {
 
         <Button
           type="submit"
-          disabled={isLoading || otp.length !== 6}
+          disabled={verifyOtpMutation.isPending || otp.length !== 6}
           className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg"
         >
-          {isLoading ? "Verifying..." : "Verify"}
+          {verifyOtpMutation.isPending ? "Verifying..." : "Verify"}
         </Button>
       </form>
     </div>
