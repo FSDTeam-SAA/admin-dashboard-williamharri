@@ -13,12 +13,21 @@ export function LayoutWrapper({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const router = useRouter()
 
-  const isPlainRoute =
-    pathname?.startsWith("/auth") || pathname === "/unauthorized"
+  const authPlainRoutes = [
+    "/login",
+    "/forgot-password",
+    "/otp",
+    "/reset-password",
+    "/unauthorized",
+  ]
+
+  const isPlainRoute = authPlainRoutes.some((route) =>
+    pathname?.startsWith(route)
+  )
 
   useEffect(() => {
     if (!isPlainRoute && status === "unauthenticated") {
-      router.replace("/auth/login")
+      router.replace("/login")
     }
   }, [isPlainRoute, status, router])
 
@@ -30,14 +39,6 @@ export function LayoutWrapper({ children }: { children: React.ReactNode }) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <Spinner className="text-gray-900" />
-      </div>
-    )
-  }
-
-  if (status === "unauthenticated") {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <p className="text-gray-600">Redirecting to login...</p>
       </div>
     )
   }

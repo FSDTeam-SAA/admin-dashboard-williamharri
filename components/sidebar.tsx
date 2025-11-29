@@ -77,7 +77,7 @@ export function Sidebar() {
             <div className="flex justify-end gap-3">
               <AlertDialogCancel>No</AlertDialogCancel>
               <AlertDialogAction
-                onClick={() => signOut({ callbackUrl: "/auth/login" })}
+                onClick={() => signOut({ callbackUrl: "/login" })}
                 className="bg-red-600 hover:bg-red-700"
               >
                 Yes, Logout

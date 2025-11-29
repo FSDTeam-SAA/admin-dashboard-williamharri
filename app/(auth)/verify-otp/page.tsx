@@ -60,7 +60,7 @@ export default function VerifyOTPPage() {
         <Button
           type="submit"
           disabled={verifyOtpMutation.isPending || otp.length !== 6}
-          className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg"
+          className="w-full h-12 bg-[#F99B07] hover:bg-[#F99B07] text-white font-medium rounded-lg"
         >
           {verifyOtpMutation.isPending ? "Verifying..." : "Verify"}
         </Button>

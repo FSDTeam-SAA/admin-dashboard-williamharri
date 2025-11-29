@@ -54,14 +54,14 @@ export default function ForgotPasswordPage() {
         <Button
           type="submit"
           disabled={requestOtpMutation.isPending}
-          className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg"
+          className="w-full h-12 bg-[#F99B07] hover:bg-[#F99B07] text-white font-medium rounded-lg"
         >
           {requestOtpMutation.isPending ? "Sending OTP..." : "Send OTP"}
         </Button>
       </form>
 
       <div className="mt-6 text-center">
-        <Link href="/auth/login" className="text-sm text-blue-600 hover:text-blue-700">
+        <Link href="/login" className="text-sm text-blue-600 hover:text-blue-700">
           Back to Login
         </Link>
       </div>

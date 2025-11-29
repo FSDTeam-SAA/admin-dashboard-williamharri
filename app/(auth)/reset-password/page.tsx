@@ -29,7 +29,7 @@ export default function ResetPasswordPage() {
       authAPI.resetPassword(payload),
     onSuccess: () => {
       toast.success("Password reset successfully")
-      router.push("/auth/login")
+      router.push("/login")
     },
     onError: (error: any) => {
       toast.error(error?.response?.data?.message || "Password reset failed")
@@ -111,14 +111,14 @@ export default function ResetPasswordPage() {
         <Button
           type="submit"
           disabled={resetPasswordMutation.isPending}
-          className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg"
+          className="w-full h-12 bg-[#F99B07] hover:bg-[#F99B07] text-white font-medium rounded-lg"
         >
           {resetPasswordMutation.isPending ? "Resetting..." : "Continue"}
         </Button>
       </form>
 
       <div className="mt-6 text-center">
-        <Link href="/auth/login" className="text-sm text-blue-600 hover:text-blue-700">
+        <Link href="/login" className="text-sm text-blue-600 hover:text-blue-700">
           Back to Login
         </Link>
       </div>

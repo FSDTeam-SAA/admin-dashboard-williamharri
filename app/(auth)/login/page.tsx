@@ -120,7 +120,7 @@ export default function LoginPage() {
             <span className="text-sm text-gray-700">Remember Me</span>
           </label>
           <Link
-            href="/auth/forgot-password"
+            href="/forgot-password"
             className="text-sm text-blue-600 hover:text-blue-700"
           >
             Forgot Password?
@@ -130,7 +130,7 @@ export default function LoginPage() {
         <Button
           type="submit"
           disabled={loginMutation.isPending}
-          className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg"
+          className="w-full h-12 bg-[#F99B07] hover:bg-[#F99B07] text-white font-medium rounded-lg"
         >
           {loginMutation.isPending ? "Logging in..." : "Login"}
         </Button>
