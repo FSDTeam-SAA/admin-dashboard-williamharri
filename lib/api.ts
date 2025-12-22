@@ -1,4 +1,4 @@
-import { axiosInstance } from "./axios-instance"
+﻿import { axiosInstance } from "./axios-instance"
 
 // AUTH ENDPOINTS
 export const authAPI = {
@@ -62,4 +62,26 @@ export const jobsAPI = {
     axiosInstance.patch(`/jobs/${id}/assignment`, { assignedTo: staffIds }),
 
   deleteJob: (id: string) => axiosInstance.delete(`/jobs/${id}`),
+};
+
+// CLIENT ENDPOINTS
+export const clientAPI = {
+  getAllClients: (page = 1, limit = 10, search = "") => {
+    const params = new URLSearchParams({
+      page: String(page),
+      limit: String(limit),
+    });
+    if (search) params.set("search", search);
+    return axiosInstance.get("/clients?" + params.toString());
+  },
+
+  getClientById: (id: string) => axiosInstance.get("/clients/" + id),
+
+  createClient: (data: { clientName: string; clientEmail: string; clientPhoneNo: string }) =>
+    axiosInstance.post("/clients", data),
+
+  updateClient: (id: string, data: { clientName?: string; clientEmail?: string; clientPhoneNo?: string }) =>
+    axiosInstance.patch("/clients/" + id, data),
+
+  deleteClient: (id: string) => axiosInstance.delete("/clients/" + id),
 };

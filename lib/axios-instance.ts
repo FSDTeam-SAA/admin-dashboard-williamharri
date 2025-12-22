@@ -1,4 +1,4 @@
-import axios, { type AxiosInstance } from "axios"
+﻿import axios, { type AxiosInstance } from "axios"
 import { getSession } from "next-auth/react"
 
 const API_URL =
@@ -23,7 +23,7 @@ axiosInstance.interceptors.request.use(
 
       if (accessToken) {
         config.headers = config.headers ?? {}
-        config.headers.Authorization = `Bearer ${accessToken}`
+        config.headers.Authorization = Bearer 
       }
     }
 
@@ -34,10 +34,34 @@ axiosInstance.interceptors.request.use(
   },
 )
 
+let refreshPromise: ReturnType<typeof getSession> | null = null
+
 // Response interceptor
 axiosInstance.interceptors.response.use(
   (response) => response,
-  async (error) => Promise.reject(error),
+  async (error) => {
+    if (typeof window === "undefined") return Promise.reject(error)
+
+    const originalRequest = error.config as (typeof error.config & {
+      _retry?: boolean
+    })
+
+    if (error.response?.status === 401 && originalRequest && !originalRequest._retry) {
+      originalRequest._retry = true
+      if (!refreshPromise) refreshPromise = getSession()
+      const session = await refreshPromise
+      refreshPromise = null
+
+      const accessToken = session?.accessToken
+      if (accessToken) {
+        originalRequest.headers = originalRequest.headers ?? {}
+        originalRequest.headers.Authorization = Bearer 
+        return axiosInstance(originalRequest)
+      }
+    }
+
+    return Promise.reject(error)
+  },
 )
 
 export default axiosInstance

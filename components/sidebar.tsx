@@ -1,9 +1,9 @@
-"use client"
+﻿"use client"
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { signOut, useSession } from "next-auth/react"
-import { LayoutDashboard, Users, Briefcase, Plus, Settings, LogOut } from "lucide-react"
+import { LayoutDashboard, Users, Briefcase, Building2, Plus, Settings, LogOut } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import {
@@ -19,6 +19,7 @@ import {
 const menuItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/users", label: "User Management", icon: Users },
+  { href: "/clients", label: "Clients", icon: Building2 },
   { href: "/jobs", label: "All Jobs", icon: Briefcase },
 ]
 
@@ -89,3 +90,5 @@ export function Sidebar() {
     </aside>
   )
 }
+
+
