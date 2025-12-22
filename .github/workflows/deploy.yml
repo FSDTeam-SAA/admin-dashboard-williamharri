@@ -1,0 +1,48 @@
+name: Deploy Next.js Dashboard
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_KEY }}
+
+      - name: Deploy to Hostinger VPS
+        run: |
+          ssh -o StrictHostKeyChecking=no \
+          ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
+
+            set -e
+
+            echo "📂 Go to app directory"
+            cd ${{ secrets.APP_PATH }}
+
+            echo "📥 Pull latest code"
+            git pull origin main
+
+            echo "📦 Install dependencies"
+            npm install
+
+            echo "🏗️ Build project"
+            npm run build || echo "No build step required"
+
+            echo "🚀 Restart backend with PM2"
+            pm2 restart all
+
+            echo "🌐 Reload Nginx"
+            sudo systemctl restart nginx
+
+            echo "✅ Deployment completed successfully"
+
+          EOF

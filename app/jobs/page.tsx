@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import { JobTable } from "@/components/job-table";
@@ -11,12 +11,14 @@ export type Job = {
   id: string;
   title: string;
   companyName: string;
+  client?: { id: string; clientName: string; clientEmail: string; clientPhoneNo: string };
   location: string;
   price: number;
   status: string;
   scaffoldStatus: string;
   createdAt: string;
   targetDate: string;
+  coordinates?: { lat?: number; lang?: number };
 };
 
 type View = "list" | "create" | "edit" | "details";
@@ -106,3 +108,5 @@ export default function JobsPage() {
     </div>
   );
 }
+
+

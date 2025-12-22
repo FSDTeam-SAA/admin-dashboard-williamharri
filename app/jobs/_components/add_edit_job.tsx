@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useQuery } from "@tanstack/react-query";
 import { jobsAPI } from "@/lib/api";
@@ -25,7 +25,8 @@ function AddEditjob({ mode, jobId, onSuccess }: AddEditjobProps) {
   const initialData =
     isEdit && job
       ? {
-          companyName: job.companyName,
+          clientId: job.client?.id || job.clientId,
+          clientName: job.client?.clientName || job.companyName,
           title: job.title,
           location: job.location,
           description: job.description,
@@ -33,16 +34,17 @@ function AddEditjob({ mode, jobId, onSuccess }: AddEditjobProps) {
           photos: job.photos || [],
           thumbnail: job.thumbnail || "",
           targetDate: job.targetDate, // if your API returns this
+          coordinates: job.coordinates,
 
-          // 🔽 pass assigned staff objects from backend
+          // ðŸ”½ pass assigned staff objects from backend
           assignedTo: job.assignedTo || [],
 
-          // 🔽 also pass just the IDs (helps JobForm pre-select)
+          // ðŸ”½ also pass just the IDs (helps JobForm pre-select)
           assignedToIds: (job.assignedTo || []).map(
             (staff: { id: string }) => staff.id
           ),
 
-          // 🔽 if your API has these
+          // ðŸ”½ if your API has these
           methodStatementUrl: job.methodStatementUrl,
           riskAssessmentUrl: job.riskAssessmentUrl,
         }
@@ -78,3 +80,5 @@ function AddEditjob({ mode, jobId, onSuccess }: AddEditjobProps) {
 }
 
 export default AddEditjob;
+
+

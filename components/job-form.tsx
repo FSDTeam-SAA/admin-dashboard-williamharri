@@ -1,11 +1,11 @@
-"use client";
+﻿"use client";
 
 import type React from "react";
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { jobsAPI, staffAPI } from "@/lib/api";
+import { clientAPI, jobsAPI, staffAPI } from "@/lib/api";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -27,12 +27,14 @@ interface JobFormProps {
   mode?: JobFormMode;
   jobId?: string;
   initialData?: {
-    companyName: string;
+    clientId?: string;
+    clientName?: string;
     title: string;
     location: string;
     description: string;
     price: number | string;
     targetDate?: string;
+    coordinates?: { lat?: number; lang?: number };
 
     assignedToIds?: string[];
     assignedTo?: {
@@ -62,6 +64,13 @@ interface Staff {
   avatarUrl?: string;
 }
 
+interface Client {
+  id: string;
+  clientName: string;
+  clientEmail: string;
+  clientPhoneNo: string;
+}
+
 export function JobForm({
   mode = "create",
   jobId,
@@ -71,12 +80,14 @@ export function JobForm({
   const router = useRouter();
 
   const [formData, setFormData] = useState({
-    companyName: "",
+    clientId: "",
     title: "",
     location: "",
     description: "",
     price: "",
     targetDate: "",
+    lat: "",
+    lang: "",
   });
 
   const [photos, setPhotos] = useState<File[]>([]);
@@ -98,11 +109,19 @@ export function JobForm({
     },
   });
 
+  const clientQuery = useQuery({
+    queryKey: ["clients", "select"],
+    queryFn: async () => {
+      const res = await clientAPI.getAllClients(1, 200);
+      return res.data.data.results as Client[];
+    },
+  });
+
   useEffect(() => {
     if (!initialData) return;
 
     setFormData({
-      companyName: initialData.companyName || "",
+      clientId: initialData.clientId || "",
       title: initialData.title || "",
       location: initialData.location || "",
       description: initialData.description || "",
@@ -110,6 +129,8 @@ export function JobForm({
       targetDate: initialData.targetDate
         ? initialData.targetDate.split("T")[0]
         : "",
+      lat: initialData.coordinates?.lat?.toString() || "",
+      lang: initialData.coordinates?.lang?.toString() || "",
     });
 
     if (initialData.photos?.length) setPreviewPhotos(initialData.photos);
@@ -187,14 +208,22 @@ export function JobForm({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (!formData.clientId) {
+      toast.error("Client is required");
+      return;
+    }
+
     const data = new FormData();
 
-    data.append("companyName", formData.companyName);
+    data.append("clientId", formData.clientId);
     data.append("title", formData.title);
     data.append("location", formData.location);
     data.append("description", formData.description);
     data.append("price", formData.price);
     data.append("targetDate", formData.targetDate);
+
+    if (formData.lat) data.append("lat", formData.lat);
+    if (formData.lang) data.append("lang", formData.lang);
 
     if (selectedStaffIds.length)
       data.append("assignedTo", JSON.stringify(selectedStaffIds));
@@ -237,15 +266,33 @@ export function JobForm({
           {/* BASIC FIELDS */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="block mb-2 text-sm font-medium">
-                Company Name
-              </label>
-              <Input
-                name="companyName"
-                value={formData.companyName}
-                onChange={handleInputChange}
-                required
-              />
+              <label className="block mb-2 text-sm font-medium">Client</label>
+              {clientQuery.isLoading ? (
+                <p className="text-sm text-gray-500">Loading clients...</p>
+              ) : clientQuery.error ? (
+                <p className="text-sm text-red-600">Failed to load clients</p>
+              ) : (
+                <Select
+                  value={formData.clientId}
+                  onValueChange={(value) =>
+                    setFormData({ ...formData, clientId: value })
+                  }
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select client" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {clientQuery.data?.map((client) => (
+                      <SelectItem key={client.id} value={client.id}>
+                        <div className="flex flex-col">
+                          <span className="font-semibold">{client.clientName}</span>
+                          <span className="text-xs text-gray-500">{client.clientEmail}</span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
 
             <div>
@@ -275,7 +322,7 @@ export function JobForm({
 
             <div>
               <label className="block mb-2 text-sm font-medium">
-                Price (£)
+                Price (Aœ)
               </label>
               <Input
                 type="number"
@@ -296,6 +343,33 @@ export function JobForm({
                 value={formData.targetDate}
                 onChange={handleInputChange}
                 required
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label className="block mb-2 text-sm font-medium">
+                Latitude (optional)
+              </label>
+              <Input
+                type="number"
+                name="lat"
+                value={formData.lat}
+                onChange={handleInputChange}
+                placeholder="51.5072"
+              />
+            </div>
+            <div>
+              <label className="block mb-2 text-sm font-medium">
+                Longitude (optional)
+              </label>
+              <Input
+                type="number"
+                name="lang"
+                value={formData.lang}
+                onChange={handleInputChange}
+                placeholder="-0.1276"
               />
             </div>
           </div>
@@ -355,7 +429,7 @@ export function JobForm({
                             {staff.username}
                           </span>
                           <span className="text-xs text-gray-500">
-                            {staff.role} — {staff.email}
+                            {staff.role} - {staff.email}
                           </span>
                         </div>
                       </div>
@@ -401,7 +475,7 @@ export function JobForm({
                       onClick={() => removePhoto(idx)}
                       className="absolute -top-2 -right-2 bg-red-600 text-white rounded-full w-6 h-6"
                     >
-                      ×
+                      X
                     </button>
                   </div>
                 ))}
@@ -509,3 +583,4 @@ export function JobForm({
     </Card>
   );
 }
+
