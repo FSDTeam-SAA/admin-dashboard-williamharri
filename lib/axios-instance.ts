@@ -21,9 +21,11 @@ axiosInstance.interceptors.request.use(
       const session = await getSession()
       const accessToken = session?.accessToken
 
+      console.log("SSSSSSSSSSSSSSSSSS", accessToken)
+
       if (accessToken) {
         config.headers = config.headers ?? {}
-        config.headers.Authorization = Bearer 
+        config.headers.Authorization = `Bearer ${accessToken}`
       }
     }
 
@@ -55,7 +57,7 @@ axiosInstance.interceptors.response.use(
       const accessToken = session?.accessToken
       if (accessToken) {
         originalRequest.headers = originalRequest.headers ?? {}
-        originalRequest.headers.Authorization = Bearer 
+        originalRequest.headers.Authorization = `Bearer ${accessToken}`
         return axiosInstance(originalRequest)
       }
     }
