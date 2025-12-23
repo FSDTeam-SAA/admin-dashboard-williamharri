@@ -30,6 +30,7 @@ function AddEditjob({ mode, jobId, onSuccess }: AddEditjobProps) {
           title: job.title,
           location: job.location,
           description: job.description,
+          quotationNo: job.quotationNo,
           price: job.price,
           photos: job.photos || [],
           thumbnail: job.thumbnail || "",

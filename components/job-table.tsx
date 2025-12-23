@@ -62,8 +62,8 @@ export interface ScaffoldApplication {
   revision?: number;
   createdAt?: string;
   updatedAt?: string;
-  status?: string; // some backends use this
-  scaffoldStatus?: string; // your sample data uses this
+  status?: string;
+  scaffoldStatus?: string;
 }
 
 export interface Job {
@@ -72,13 +72,15 @@ export interface Job {
   companyName: string;
   client?: ClientSummary;
   location: string;
-  price: number;
 
-  // job meta
-  jobStatus?: string; // "active" | "assignedToStaffs" | "completed"
-  scaffoldStatus?: string; // "submitted" | "redo" | "accepted"
+  quotationNo?: string; // ✅ added
+
+  price: number | null; // ✅ safer (API can return null)
+
+  jobStatus?: string;
+  scaffoldStatus?: string;
   createdAt: string;
-  targetDate: string;
+  targetDate: string | null; // ✅ safer (API can return null)
   coordinates?: { lat?: number; lang?: number };
 
   assignedTo?: UserSummary[];
@@ -104,7 +106,8 @@ export const JobStatus = Object.freeze([
   "active",
   "assignedToStaffs",
   "completed",
-]);
+  "ReadyForDismantle",
+] as const);
 
 const scaffoldStates = ["submitted", "redo", "accepted"] as const;
 
@@ -194,12 +197,13 @@ export function JobTable({ onEdit, onViewDetails }: JobTableProps) {
                 <TableHead>Title</TableHead>
                 <TableHead>Client</TableHead>
                 <TableHead>Location</TableHead>
-                <TableHead>Price</TableHead>
+                <TableHead>Quotation No</TableHead> {/* ✅ added */}
                 <TableHead>Status</TableHead>
                 <TableHead>Scaffold</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
+
             <TableBody>
               {isLoading
                 ? Array.from({ length: 5 }).map((_, i) => (
@@ -216,6 +220,7 @@ export function JobTable({ onEdit, onViewDetails }: JobTableProps) {
                     const hasScaffold = !!(
                       job.latestScaffold || job.scaffoldApplication
                     );
+
                     return (
                       <TableRow key={job.id}>
                         <TableCell className="font-medium">
@@ -236,7 +241,12 @@ export function JobTable({ onEdit, onViewDetails }: JobTableProps) {
                           </p>
                         </TableCell>
 
-                        <TableCell>Â£{job.price}</TableCell>
+                        {/* ✅ quotation */}
+                        <TableCell>
+                          <p className="line-clamp-2 whitespace-normal break-words">
+                            {job.quotationNo || "—"}
+                          </p>
+                        </TableCell>
 
                         {/* JOB STATUS SELECT */}
                         <TableCell>
@@ -258,6 +268,9 @@ export function JobTable({ onEdit, onViewDetails }: JobTableProps) {
                               <SelectItem value="assignedToStaffs">
                                 Assigned to Staffs
                               </SelectItem>
+                              <SelectItem value="ReadyForDismantle">
+                                Ready For Dismantle
+                              </SelectItem>
                               <SelectItem value="completed">
                                 Completed
                               </SelectItem>
@@ -273,7 +286,6 @@ export function JobTable({ onEdit, onViewDetails }: JobTableProps) {
                               if (hasScaffold) setSelectedJobForScaffold(job);
                             }}
                             disabled={!hasScaffold}
-                            // variant={hasScaffold ? "default" : "secondary"}
                             className={
                               !hasScaffold
                                 ? "cursor-not-allowed opacity-60"
@@ -330,6 +342,7 @@ export function JobTable({ onEdit, onViewDetails }: JobTableProps) {
             {Math.min(page * limit, pagination.totalDocs)} of{" "}
             {pagination.totalDocs} results
           </span>
+
           <div className="flex gap-2">
             <Button
               variant="outline"
@@ -338,6 +351,7 @@ export function JobTable({ onEdit, onViewDetails }: JobTableProps) {
             >
               Previous
             </Button>
+
             <div className="flex items-center gap-2">
               {Array.from({ length: Math.min(pagination.totalPages, 5) }).map(
                 (_, i) => (
@@ -352,6 +366,7 @@ export function JobTable({ onEdit, onViewDetails }: JobTableProps) {
                 )
               )}
             </div>
+
             <Button
               variant="outline"
               onClick={() => setPage(page + 1)}
@@ -374,8 +389,6 @@ export function JobTable({ onEdit, onViewDetails }: JobTableProps) {
           {selectedJobForScaffold &&
             (() => {
               const job = selectedJobForScaffold;
-
-              // Prefer latestScaffold; fallback to scaffoldApplication
               const scaffoldApp = job.latestScaffold || job.scaffoldApplication;
 
               if (!scaffoldApp) {
@@ -406,11 +419,10 @@ export function JobTable({ onEdit, onViewDetails }: JobTableProps) {
                 <>
                   <DialogHeader>
                     <DialogTitle>
-                      {job.title} â€“ Scaffold Application
+                      {job.title} – Scaffold Application
                     </DialogTitle>
                   </DialogHeader>
 
-                  {/* Assigned staff */}
                   <div className="mb-4 text-sm text-gray-700">
                     <p className="font-medium mb-1">Assigned To:</p>
                     {job.assignedTo && job.assignedTo.length > 0 ? (
@@ -431,7 +443,6 @@ export function JobTable({ onEdit, onViewDetails }: JobTableProps) {
                     )}
                   </div>
 
-                  {/* Dropdown for scaffold application status */}
                   <div className="mb-4">
                     <p className="text-sm font-medium text-gray-700 mb-1">
                       Scaffold Application Status
@@ -460,7 +471,6 @@ export function JobTable({ onEdit, onViewDetails }: JobTableProps) {
                     </Select>
                   </div>
 
-                  {/* Scaffold Application Details */}
                   <div className="pt-4 border-t border-gray-200 space-y-2">
                     <p className="text-sm text-gray-500">
                       Scaffold Application
@@ -540,5 +550,3 @@ export function JobTable({ onEdit, onViewDetails }: JobTableProps) {
     </>
   );
 }
-
-

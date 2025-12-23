@@ -31,6 +31,7 @@ interface JobFormProps {
     clientName?: string;
     title: string;
     location: string;
+    quotationNo?: string; // ✅ added
     description: string;
     price: number | string;
     targetDate?: string;
@@ -83,6 +84,7 @@ export function JobForm({
     clientId: "",
     title: "",
     location: "",
+    quotationNo: "", // ✅ added
     description: "",
     price: "",
     targetDate: "",
@@ -124,6 +126,7 @@ export function JobForm({
       clientId: initialData.clientId || "",
       title: initialData.title || "",
       location: initialData.location || "",
+      quotationNo: initialData.quotationNo || "", // ✅ added
       description: initialData.description || "",
       price: initialData.price?.toString() || "",
       targetDate: initialData.targetDate
@@ -218,6 +221,7 @@ export function JobForm({
     data.append("clientId", formData.clientId);
     data.append("title", formData.title);
     data.append("location", formData.location);
+    data.append("quotationNo", formData.quotationNo); // ✅ added
     data.append("description", formData.description);
     data.append("price", formData.price);
     data.append("targetDate", formData.targetDate);
@@ -285,8 +289,12 @@ export function JobForm({
                     {clientQuery.data?.map((client) => (
                       <SelectItem key={client.id} value={client.id}>
                         <div className="flex flex-col">
-                          <span className="font-semibold">{client.clientName}</span>
-                          <span className="text-xs text-gray-500">{client.clientEmail}</span>
+                          <span className="font-semibold">
+                            {client.clientName}
+                          </span>
+                          <span className="text-xs text-gray-500">
+                            {client.clientEmail}
+                          </span>
                         </div>
                       </SelectItem>
                     ))}
@@ -296,9 +304,7 @@ export function JobForm({
             </div>
 
             <div>
-              <label className="block mb-2 text-sm font-medium">
-                Job Title
-              </label>
+              <label className="block mb-2 text-sm font-medium">Job Title</label>
               <Input
                 name="title"
                 value={formData.title}
@@ -308,7 +314,7 @@ export function JobForm({
             </div>
           </div>
 
-          {/* LOCATION + PRICE + DATE */}
+          {/* LOCATION + QUOTATION + DESCRIPTION */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div>
               <label className="block mb-2 text-sm font-medium">Location</label>
@@ -320,14 +326,14 @@ export function JobForm({
               />
             </div>
 
+            {/* ✅ Quotation No */}
             <div>
               <label className="block mb-2 text-sm font-medium">
-                Price (Aœ)
+                Quotation No
               </label>
               <Input
-                type="number"
-                name="price"
-                value={formData.price}
+                name="quotationNo"
+                value={formData.quotationNo}
                 onChange={handleInputChange}
                 required
               />
@@ -335,64 +341,23 @@ export function JobForm({
 
             <div>
               <label className="block mb-2 text-sm font-medium">
-                Target Date
+                Description
               </label>
-              <Input
-                type="date"
-                name="targetDate"
-                value={formData.targetDate}
+              <textarea
+                name="description"
+                value={formData.description}
                 onChange={handleInputChange}
+                rows={4}
+                className="w-full border rounded-lg p-2"
                 required
               />
             </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className="block mb-2 text-sm font-medium">
-                Latitude (optional)
-              </label>
-              <Input
-                type="number"
-                name="lat"
-                value={formData.lat}
-                onChange={handleInputChange}
-                placeholder="51.5072"
-              />
-            </div>
-            <div>
-              <label className="block mb-2 text-sm font-medium">
-                Longitude (optional)
-              </label>
-              <Input
-                type="number"
-                name="lang"
-                value={formData.lang}
-                onChange={handleInputChange}
-                placeholder="-0.1276"
-              />
-            </div>
-          </div>
-
-          {/* DESCRIPTION */}
-          <div>
-            <label className="block mb-2 text-sm font-medium">
-              Description
-            </label>
-            <textarea
-              name="description"
-              value={formData.description}
-              onChange={handleInputChange}
-              rows={4}
-              className="w-full border rounded-lg p-2"
-              required
-            />
           </div>
 
           {/* ASSIGN STAFF */}
           <div>
             <label className="block mb-2 text-sm font-medium text-gray-900">
-              Assign Staff
+              Assign Staff (You can also assign staff later in job details)
             </label>
 
             {staffQuery.isLoading ? (
@@ -469,6 +434,7 @@ export function JobForm({
                     <img
                       src={src}
                       className="w-full h-24 rounded-lg object-cover"
+                      alt={`photo-${idx}`}
                     />
                     <button
                       type="button"
@@ -509,6 +475,7 @@ export function JobForm({
                 <img
                   src={previewThumbnail}
                   className="w-40 h-32 rounded-lg object-cover"
+                  alt="thumbnail"
                 />
               </div>
             )}
@@ -531,6 +498,7 @@ export function JobForm({
                 <a
                   href={initialData.methodStatementUrl}
                   target="_blank"
+                  rel="noreferrer"
                   className="underline text-blue-500"
                 >
                   View current file
@@ -556,6 +524,7 @@ export function JobForm({
                 <a
                   href={initialData.riskAssessmentUrl}
                   target="_blank"
+                  rel="noreferrer"
                   className="underline text-blue-500"
                 >
                   View current file
@@ -583,4 +552,3 @@ export function JobForm({
     </Card>
   );
 }
-

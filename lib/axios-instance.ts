@@ -21,8 +21,6 @@ axiosInstance.interceptors.request.use(
       const session = await getSession()
       const accessToken = session?.accessToken
 
-      console.log("SSSSSSSSSSSSSSSSSS", accessToken)
-
       if (accessToken) {
         config.headers = config.headers ?? {}
         config.headers.Authorization = `Bearer ${accessToken}`
