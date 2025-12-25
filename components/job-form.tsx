@@ -314,6 +314,34 @@ export function JobForm({
             </div>
           </div>
 
+          {/* COORDINATES (LAT/LONG) */}
+<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+  <div>
+    <label className="block mb-2 text-sm font-medium">Latitude</label>
+    <Input
+      name="lat"
+      value={formData.lat}
+      onChange={handleInputChange}
+      placeholder="e.g. 51.5074"
+      type="number"
+      step="any"
+    />
+  </div>
+
+  <div>
+    <label className="block mb-2 text-sm font-medium">Longitude</label>
+    <Input
+      name="lang"
+      value={formData.lang}
+      onChange={handleInputChange}
+      placeholder="e.g. -0.1278"
+      type="number"
+      step="any"
+    />
+  </div>
+</div>
+
+
           {/* LOCATION + QUOTATION + DESCRIPTION */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div>
@@ -353,6 +381,7 @@ export function JobForm({
               />
             </div>
           </div>
+          
 
           {/* ASSIGN STAFF */}
           <div>
