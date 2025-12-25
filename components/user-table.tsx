@@ -19,6 +19,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { Trash2 } from "lucide-react"
+import { Input } from "@/components/ui/input"
 
 interface User {
   id: string
@@ -45,6 +46,9 @@ export function UserTable() {
   const queryClient = useQueryClient()
   const [page, setPage] = useState(1)
   const limit = 20
+
+  // ✅ Search state (by name / username)
+  const [search, setSearch] = useState("")
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["users", page],
@@ -86,12 +90,33 @@ export function UserTable() {
     hasPrev: false,
   }
 
+  // ✅ Filter users by name (fallback to username)
+  const filteredUsers = users.filter((user) => {
+    const name = (user.name || user.username || "").toLowerCase()
+    return name.includes(search.trim().toLowerCase())
+  })
+
   if (error) {
     return <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">Error loading users</div>
   }
 
   return (
     <div className="space-y-4">
+      {/* ✅ Search Bar */}
+      <div className="flex items-center gap-3">
+        <Input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search by name..."
+          className="max-w-sm"
+        />
+        {search && (
+          <Button variant="outline" onClick={() => setSearch("")}>
+            Clear
+          </Button>
+        )}
+      </div>
+
       <div className="overflow-x-auto">
         <Table>
           <TableHeader>
@@ -128,14 +153,15 @@ export function UserTable() {
                     </TableCell>
                   </TableRow>
                 ))
-              : users.map((user) => (
+              : filteredUsers.map((user) => (
                   <TableRow key={user.id}>
                     <TableCell>
                       <div className="flex items-center gap-3">
                         <Avatar>
                           <AvatarFallback>
-                            {(user.name || user.username)
+                            {(user.name || user.username || "U")
                               .split(" ")
+                              .filter(Boolean)
                               .map((n) => n[0])
                               .join("")
                               .toUpperCase()}
@@ -144,7 +170,9 @@ export function UserTable() {
                         <span className="font-medium">{user.name || user.username}</span>
                       </div>
                     </TableCell>
+
                     <TableCell className="text-sm text-gray-600">{user.email}</TableCell>
+
                     <TableCell>
                       <Select
                         value={user.role}
@@ -166,12 +194,15 @@ export function UserTable() {
                         </SelectContent>
                       </Select>
                     </TableCell>
+
                     <TableCell>
                       <span className="inline-block px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">
                         {user.status}
                       </span>
                     </TableCell>
+
                     <TableCell className="text-sm text-gray-600">{user.uniqueId}</TableCell>
+
                     <TableCell>
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
@@ -203,16 +234,17 @@ export function UserTable() {
         </Table>
       </div>
 
-      {/* Custom Pagination */}
+      {/* Pagination */}
       <div className="flex items-center justify-between">
         <span className="text-sm text-gray-600">
-          Showing {(page - 1) * limit + 1} to {Math.min(page * limit, pagination.totalDocs)} of {pagination.totalDocs}{" "}
-          results
+          Showing {(page - 1) * limit + 1} to {Math.min(page * limit, pagination.totalDocs)} of {pagination.totalDocs} results
         </span>
+
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => setPage(page - 1)} disabled={!pagination.hasPrev}>
             Previous
           </Button>
+
           <div className="flex items-center gap-2">
             {Array.from({ length: pagination.totalPages }).map((_, i) => (
               <Button
@@ -225,6 +257,7 @@ export function UserTable() {
               </Button>
             ))}
           </div>
+
           <Button variant="outline" onClick={() => setPage(page + 1)} disabled={!pagination.hasNext}>
             Next
           </Button>

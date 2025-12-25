@@ -29,6 +29,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 
 export interface UserSummary {
   id: string;
@@ -38,6 +39,7 @@ export interface UserSummary {
   phone: string | null;
   avatarUrl: string;
   uniqueId: string;
+  name?: string;
 }
 
 export interface ClientSummary {
@@ -73,14 +75,14 @@ export interface Job {
   client?: ClientSummary;
   location: string;
 
-  quotationNo?: string; // ✅ added
+  quotationNo?: string;
 
-  price: number | null; // ✅ safer (API can return null)
+  price: number | null;
 
   jobStatus?: string;
   scaffoldStatus?: string;
   createdAt: string;
-  targetDate: string | null; // ✅ safer (API can return null)
+  targetDate: string | null;
   coordinates?: { lat?: number; lang?: number };
 
   assignedTo?: UserSummary[];
@@ -118,6 +120,9 @@ export function JobTable({ onEdit, onViewDetails }: JobTableProps) {
 
   const [selectedJobForScaffold, setSelectedJobForScaffold] =
     useState<Job | null>(null);
+
+  // ✅ Search by clientName/companyName
+  const [search, setSearch] = useState("");
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["jobs", page],
@@ -179,6 +184,12 @@ export function JobTable({ onEdit, onViewDetails }: JobTableProps) {
     hasPrev: false,
   };
 
+  // ✅ filtered list (clientName search)
+  const filteredJobs = jobs.filter((job) => {
+    const clientName = job.client?.clientName || job.companyName || "";
+    return clientName.toLowerCase().includes(search.trim().toLowerCase());
+  });
+
   if (error) {
     return (
       <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
@@ -190,6 +201,21 @@ export function JobTable({ onEdit, onViewDetails }: JobTableProps) {
   return (
     <>
       <div className="space-y-4">
+        {/* ✅ Search bar */}
+        <div className="flex items-center gap-3">
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search by client name..."
+            className="max-w-sm"
+          />
+          {search && (
+            <Button variant="outline" onClick={() => setSearch("")}>
+              Clear
+            </Button>
+          )}
+        </div>
+
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
@@ -197,7 +223,7 @@ export function JobTable({ onEdit, onViewDetails }: JobTableProps) {
                 <TableHead>Title</TableHead>
                 <TableHead>Client</TableHead>
                 <TableHead>Location</TableHead>
-                <TableHead>Quotation No</TableHead> {/* ✅ added */}
+                <TableHead>Quotation No</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Scaffold</TableHead>
                 <TableHead>Actions</TableHead>
@@ -215,7 +241,7 @@ export function JobTable({ onEdit, onViewDetails }: JobTableProps) {
                       ))}
                     </TableRow>
                   ))
-                : jobs.map((job) => {
+                : filteredJobs.map((job) => {
                     const jobStatusValue = job.jobStatus ?? "";
                     const hasScaffold = !!(
                       job.latestScaffold || job.scaffoldApplication
@@ -241,7 +267,6 @@ export function JobTable({ onEdit, onViewDetails }: JobTableProps) {
                           </p>
                         </TableCell>
 
-                        {/* ✅ quotation */}
                         <TableCell>
                           <p className="line-clamp-2 whitespace-normal break-words">
                             {job.quotationNo || "—"}
@@ -335,7 +360,7 @@ export function JobTable({ onEdit, onViewDetails }: JobTableProps) {
           </Table>
         </div>
 
-        {/* Pagination */}
+        {/* Pagination (still uses API pagination; search filters current page) */}
         <div className="flex items-center justify-between">
           <span className="text-sm text-gray-600">
             Showing {(page - 1) * limit + 1} to{" "}
@@ -385,7 +410,7 @@ export function JobTable({ onEdit, onViewDetails }: JobTableProps) {
           if (!open) setSelectedJobForScaffold(null);
         }}
       >
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
           {selectedJobForScaffold &&
             (() => {
               const job = selectedJobForScaffold;
@@ -423,6 +448,7 @@ export function JobTable({ onEdit, onViewDetails }: JobTableProps) {
                     </DialogTitle>
                   </DialogHeader>
 
+                  {/* Assigned To */}
                   <div className="mb-4 text-sm text-gray-700">
                     <p className="font-medium mb-1">Assigned To:</p>
                     {job.assignedTo && job.assignedTo.length > 0 ? (
@@ -443,6 +469,7 @@ export function JobTable({ onEdit, onViewDetails }: JobTableProps) {
                     )}
                   </div>
 
+                  {/* Scaffold Status */}
                   <div className="mb-4">
                     <p className="text-sm font-medium text-gray-700 mb-1">
                       Scaffold Application Status
@@ -471,13 +498,25 @@ export function JobTable({ onEdit, onViewDetails }: JobTableProps) {
                     </Select>
                   </div>
 
-                  <div className="pt-4 border-t border-gray-200 space-y-2">
+                  {/* ✅ Full Scaffold Details */}
+                  <div className="pt-4 border-t border-gray-200 space-y-4">
                     <p className="text-sm text-gray-500">
                       Scaffold Application
                       {job.latestScaffold ? " (Latest)" : ""}
                     </p>
 
+                    {/* Basic info */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-700">
+                      <div>
+                        <span className="font-medium">Application ID: </span>
+                        <span className="break-all">{scaffoldApp.id}</span>
+                      </div>
+
+                      <div>
+                        <span className="font-medium">Job ID: </span>
+                        <span className="break-all">{scaffoldApp.job}</span>
+                      </div>
+
                       <div>
                         <span className="font-medium">Status: </span>
                         <span className="capitalize">
@@ -490,46 +529,176 @@ export function JobTable({ onEdit, onViewDetails }: JobTableProps) {
                         {scaffoldApp.revision ?? 0}
                       </div>
 
-                      <div>
-                        <span className="font-medium">Applicant: </span>
-                        {scaffoldApp.applicant
-                          ? `${scaffoldApp.applicant.username} (${scaffoldApp.applicant.email})`
-                          : "N/A"}
+                      <div className="md:col-span-2">
+                        <span className="font-medium">Title: </span>
+                        <span>{scaffoldApp.title || "N/A"}</span>
+                      </div>
+
+                      <div className="md:col-span-2">
+                        <span className="font-medium">Description: </span>
+                        <span className="whitespace-pre-wrap">
+                          {scaffoldApp.description || "N/A"}
+                        </span>
                       </div>
 
                       <div>
-                        <span className="font-medium">Submitted At: </span>
+                        <span className="font-medium">Terms Accepted: </span>
+                        {scaffoldApp.termsAccepted ? "Yes" : "No"}
+                      </div>
+
+                      <div>
+                        <span className="font-medium">
+                          Method Statement Agreed:{" "}
+                        </span>
+                        {scaffoldApp.methodStatementAgreed ? "Yes" : "No"}
+                      </div>
+
+                      <div>
+                        <span className="font-medium">
+                          Risk Assessment Agreed:{" "}
+                        </span>
+                        {scaffoldApp.riskAssessmentAgreed ? "Yes" : "No"}
+                      </div>
+
+                      <div>
+                        <span className="font-medium">Created At: </span>
                         {scaffoldApp.createdAt
                           ? new Date(scaffoldApp.createdAt).toLocaleString()
                           : "N/A"}
                       </div>
 
                       <div>
-                        <span className="font-medium">Photos: </span>
+                        <span className="font-medium">Updated At: </span>
+                        {scaffoldApp.updatedAt
+                          ? new Date(scaffoldApp.updatedAt).toLocaleString()
+                          : "N/A"}
+                      </div>
+                    </div>
+
+                    {/* Applicant */}
+                    <div className="rounded-lg border p-3 text-sm">
+                      <p className="font-medium mb-3">Applicant</p>
+
+                      {scaffoldApp.applicant ? (
+                        <div className="flex gap-3">
+                          <div className="shrink-0">
+                            <img
+                              src={
+                                scaffoldApp.applicant.avatarUrl ||
+                                "/placeholder-avatar.png"
+                              }
+                              alt="Applicant avatar"
+                              className="h-12 w-12 rounded-full object-cover border"
+                            />
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-gray-700 w-full">
+                            <div>
+                              <span className="font-medium">Name: </span>
+                              {scaffoldApp.applicant.name || "N/A"}
+                            </div>
+
+                            <div>
+                              <span className="font-medium">Username: </span>
+                              {scaffoldApp.applicant.username || "N/A"}
+                            </div>
+
+                            <div>
+                              <span className="font-medium">Email: </span>
+                              {scaffoldApp.applicant.email || "N/A"}
+                            </div>
+
+                            <div>
+                              <span className="font-medium">Role: </span>
+                              {scaffoldApp.applicant.role || "N/A"}
+                            </div>
+
+                            <div>
+                              <span className="font-medium">Phone: </span>
+                              {scaffoldApp.applicant.phone || "N/A"}
+                            </div>
+
+                            <div>
+                              <span className="font-medium">Unique ID: </span>
+                              {scaffoldApp.applicant.uniqueId || "N/A"}
+                            </div>
+
+                            <div className="md:col-span-2">
+                              <span className="font-medium">User ID: </span>
+                              <span className="break-all">
+                                {scaffoldApp.applicant.id}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="text-gray-500">N/A</p>
+                      )}
+                    </div>
+
+                    {/* Photos as images */}
+                    <div className="rounded-lg border p-3 text-sm">
+                      <p className="font-medium mb-3">
+                        Photos (
                         {Array.isArray(scaffoldApp.photos)
                           ? scaffoldApp.photos.length
                           : 0}
-                      </div>
+                        )
+                      </p>
 
-                      <div>
-                        <span className="font-medium">RAMS Docs: </span>
+                      {Array.isArray(scaffoldApp.photos) &&
+                      scaffoldApp.photos.length > 0 ? (
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                          {scaffoldApp.photos.map((url, idx) => (
+                            <a
+                              key={url + idx}
+                              href={url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="block"
+                              title={`Open Photo ${idx + 1}`}
+                            >
+                              <img
+                                src={url}
+                                alt={`Photo ${idx + 1}`}
+                                className="h-28 w-full rounded-md object-cover border hover:opacity-90"
+                                loading="lazy"
+                              />
+                            </a>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-gray-500">No photos</p>
+                      )}
+                    </div>
+
+                    {/* RAMS Docs */}
+                    <div className="rounded-lg border p-3 text-sm">
+                      <p className="font-medium mb-2">
+                        RAMS Docs (
                         {Array.isArray(scaffoldApp.ramsDocs)
                           ? scaffoldApp.ramsDocs.length
                           : 0}
-                      </div>
+                        )
+                      </p>
 
-                      {scaffoldApp.signatureUrl && (
-                        <div className="md:col-span-2">
-                          <span className="font-medium">Signature File: </span>
-                          <a
-                            href={scaffoldApp.signatureUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="text-blue-600 underline break-all"
-                          >
-                            View signature
-                          </a>
+                      {Array.isArray(scaffoldApp.ramsDocs) &&
+                      scaffoldApp.ramsDocs.length > 0 ? (
+                        <div className="space-y-2">
+                          {scaffoldApp.ramsDocs.map((url, idx) => (
+                            <a
+                              key={url + idx}
+                              href={url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="block text-blue-600 underline break-all"
+                            >
+                              RAMS Doc {idx + 1}
+                            </a>
+                          ))}
                         </div>
+                      ) : (
+                        <p className="text-gray-500">No RAMS docs</p>
                       )}
                     </div>
                   </div>
