@@ -28,7 +28,7 @@ const refreshAccessToken = async (token: JWT) => {
       throw new Error("Missing refresh token")
     }
 
-    const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
+    const response = await fetch(`${API_BASE_URL}/auth/refresh-token`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

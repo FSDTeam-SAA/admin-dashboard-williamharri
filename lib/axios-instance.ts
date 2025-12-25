@@ -1,5 +1,5 @@
-﻿import axios, { type AxiosInstance } from "axios"
-import { getSession } from "next-auth/react"
+import axios, { type AxiosInstance } from "axios"
+import { getSession, signOut } from "next-auth/react"
 
 const API_URL =
   process.env.NEXT_PUBLIC_BASE_URL ||
@@ -13,6 +13,8 @@ export const axiosInstance: AxiosInstance = axios.create({
     "Content-Type": "application/json",
   },
 })
+
+let refreshPromise: ReturnType<typeof getSession> | null = null
 
 // Request interceptor to add token
 axiosInstance.interceptors.request.use(
@@ -34,8 +36,6 @@ axiosInstance.interceptors.request.use(
   },
 )
 
-let refreshPromise: ReturnType<typeof getSession> | null = null
-
 // Response interceptor
 axiosInstance.interceptors.response.use(
   (response) => response,
@@ -53,11 +53,14 @@ axiosInstance.interceptors.response.use(
       refreshPromise = null
 
       const accessToken = session?.accessToken
-      if (accessToken) {
-        originalRequest.headers = originalRequest.headers ?? {}
-        originalRequest.headers.Authorization = `Bearer ${accessToken}`
-        return axiosInstance(originalRequest)
+      if (session?.error === "RefreshAccessTokenError" || !accessToken) {
+        await signOut({ callbackUrl: "/login" })
+        return Promise.reject(error)
       }
+
+      originalRequest.headers = originalRequest.headers ?? {}
+      originalRequest.headers.Authorization = `Bearer ${accessToken}`
+      return axiosInstance(originalRequest)
     }
 
     return Promise.reject(error)
